@@ -1,0 +1,22 @@
+{
+  "name": "study_mcp",
+  "version": "1.0.0",
+  "description": "このリポジトリは、Anthropicが提唱する **Model Context Protocol (MCP)** の仕組みを理解し、実際にサーバーを構築・連携できるようになるためのハンズオン学習用リポジトリです。",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  }
+}
