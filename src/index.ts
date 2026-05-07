@@ -5,6 +5,8 @@ import {
   ReadResourceRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 // サーバーの初期化
@@ -17,6 +19,7 @@ const server = new Server(
     capabilities: {
       resources: {}, // リソース機能を使用することを宣言
       prompts: {},   // プロンプト機能を使用することを宣言
+      tools: {},     // ツール機能を使用することを宣言
     },
   }
 );
@@ -93,6 +96,60 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   }
 
   throw new Error("プロンプトが見つかりません: " + request.params.name);
+});
+// -----------------------------------
+
+// --- Tools (ツール) の実装 ---
+// クライアントに、どんなツール（実行可能な機能）があるか一覧を教える
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "calculate_sum",
+        description: "2つの数字を足し算するツール",
+        inputSchema: {
+          type: "object",
+          properties: {
+            a: {
+              type: "number",
+              description: "1つ目の数字",
+            },
+            b: {
+              type: "number",
+              description: "2つ目の数字",
+            },
+          },
+          required: ["a", "b"],
+        },
+      },
+    ],
+  };
+});
+
+// クライアントから要求されたツールを実際に実行し、結果を返す
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "calculate_sum") {
+    // クライアントから送られてきた引数を取得
+    const a = Number(request.params.arguments?.a);
+    const b = Number(request.params.arguments?.b);
+
+    if (isNaN(a) || isNaN(b)) {
+      throw new Error("引数 'a' と 'b' は有効な数値である必要があります。");
+    }
+
+    const result = a + b;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `計算結果: ${a} + ${b} = ${result}`,
+        },
+      ],
+    };
+  }
+
+  throw new Error("ツールが見つかりません: " + request.params.name);
 });
 // -----------------------------------
 
