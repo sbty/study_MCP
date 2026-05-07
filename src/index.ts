@@ -1,5 +1,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import fs from "fs/promises";
+import path from "path";
 import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
@@ -122,6 +124,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["a", "b"],
         },
       },
+      {
+        name: "read_file",
+        description: "安全なディレクトリ内の指定されたファイルの中身を読み込むツール",
+        inputSchema: {
+          type: "object",
+          properties: {
+            filename: {
+              type: "string",
+              description: "読み込むファイル名（例: package.json）",
+            },
+          },
+          required: ["filename"],
+        },
+      },
     ],
   };
 });
@@ -147,6 +163,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         },
       ],
     };
+  }
+
+  if (request.params.name === "read_file") {
+    const filename = String(request.params.arguments?.filename);
+    
+    // 【セキュリティ制限】許可されたディレクトリ（実行ディレクトリ）を絶対パスで取得
+    const allowedDir = path.resolve(process.cwd()); 
+    // 要求されたファイルの絶対パスを計算
+    const targetPath = path.resolve(allowedDir, filename);
+
+    // セキュリティチェック: targetPath が allowedDir の内側にあるか確認（../ 等を使った不正アクセス対策）
+    if (!targetPath.startsWith(allowedDir)) {
+      throw new Error(`セキュリティエラー: 許可されていないディレクトリへのアクセスです (${filename})`);
+    }
+
+    try {
+      // ファイルを読み込んで返す
+      const content = await fs.readFile(targetPath, "utf-8");
+      return {
+        content: [
+          {
+            type: "text",
+            text: content,
+          },
+        ],
+      };
+    } catch (error: any) {
+      throw new Error(`ファイルの読み込みに失敗しました: ${error.message}`);
+    }
   }
 
   throw new Error("ツールが見つかりません: " + request.params.name);
